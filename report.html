@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Báo Cáo Bài Tập 3: Chuyển Đổi RestTemplate Sang WebClient Trong Spring WebFlux</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 15mm 18mm 15mm;
+            @bottom-right {
+                content: counter(page);
+            }
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #24292e;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .header-container {
+            border-bottom: 3px solid #8250df;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .badge {
+            display: inline-block;
+            background: #fbefff;
+            color: #8250df;
+            font-weight: bold;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        h1 {
+            color: #8250df;
+            font-size: 22px;
+            margin: 5px 0 10px 0;
+            line-height: 1.3;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #57606a;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            background: #f6f8fa;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border-left: 4px solid #8250df;
+            font-size: 12px;
+        }
+        .meta-item strong {
+            color: #24292e;
+        }
+        h2 {
+            color: #24292e;
+            font-size: 16px;
+            border-bottom: 1.5px solid #d0d7de;
+            padding-bottom: 5px;
+            margin-top: 22px;
+            margin-bottom: 10px;
+        }
+        h3 {
+            color: #32383f;
+            font-size: 14px;
+            margin-top: 14px;
+            margin-bottom: 6px;
+        }
+        p, li {
+            text-align: justify;
+        }
+        ul, ol {
+            margin: 6px 0 10px 20px;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #d0d7de;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background: #f6f8fa;
+            font-weight: 600;
+            color: #24292e;
+        }
+        tr:nth-child(even) {
+            background-color: #fcfdfd;
+        }
+        .alert-box {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-size: 12px;
+        }
+        .alert-danger {
+            background: #ffebe9;
+            border-left: 4px solid #cf222e;
+            color: #82071e;
+        }
+        .alert-success {
+            background: #dafbe1;
+            border-left: 4px solid #1a7f37;
+            color: #116329;
+        }
+        .alert-info {
+            background: #ddf4ff;
+            border-left: 4px solid #0969da;
+            color: #0969da;
+        }
+        pre {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.45;
+            overflow-x: auto;
+            margin: 8px 0 12px 0;
+        }
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            background: #eff1f3;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #b31d28;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: #24292e;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #eaecef;
+            font-size: 11px;
+            color: #6a737d;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-container">
+    <div class="badge">BÁO CÁO KỸ THUẬT & KIỂM THỬ TẢI</div>
+    <h1>BÀI TẬP 3: CHUYỂN ĐỔI RESTTEMPLATE SANG WEBCLIENT TRONG SPRING WEBFLUX</h1>
+    <div class="subtitle">Khôi phục kiến trúc Non-blocking, giải cứu API khỏi cạn kiệt luồng khi phục vụ 10.000 concurrent users tại StoreX</div>
+    <div class="meta-grid">
+        <div class="meta-item"><strong>Khóa học:</strong> Microservices System Design (Rikkei Education)</div>
+        <div class="meta-item"><strong>Hệ thống:</strong> Nền tảng E-Commerce StoreX</div>
+        <div class="meta-item"><strong>Module:</strong> storex-home-service &rarr; promotion-service</div>
+        <div class="meta-item"><strong>Công nghệ:</strong> Spring WebFlux, Project Reactor (Mono), Netty, WebClient, StepVerifier</div>
+    </div>
+</div>
+
+<h2>1. Bối cảnh Nghiệp vụ & Hiện trạng Sự cố</h2>
+<p>
+    Hệ thống <strong>StoreX</strong> cung cấp API hiển thị <strong>Banner Khuyến mãi</strong> tại trang chủ. Khi khách hàng mở ứng dụng, API này gọi sang <code>promotion-service</code> để lấy thông tin khuyến mãi đang hiệu lực. Mục tiêu phi chức năng là hệ thống phải chịu tải mượt mà <strong>10.000 người dùng truy cập đồng thời</strong> trong các khung giờ Flash Sale.
+</p>
+<p>
+    Dự án được cấu hình chạy trên nền tảng <strong>Spring WebFlux</strong>. Tuy nhiên, khi chạy kiểm thử chịu tải, hệ thống lập tức xuất hiện hàng loạt lỗi <strong>HTTP 500 Internal Server Error</strong>, server bị "đóng băng", thời gian phản hồi (Response Time) tăng vọt và ứng dụng treo cứng.
+</p>
+
+<pre><code>// PromotionService.java -- HIỆN TRẠNG ĐANG GẶP LỖI
+@Service
+public class PromotionService {
+    // SAI 1: Dùng RestTemplate trong WebFlux -- RestTemplate là BLOCKING
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    public Banner getActiveBanner() {
+        // SAI 2: Gọi đồng bộ, block thread
+        String url = "http://promotion-service/api/banners/active";
+        Banner banner = restTemplate.getForObject(url, Banner.class);
+
+        // SAI 3: Nếu service chết, hệ thống crash
+        if (banner == null) {
+            throw new RuntimeException("Promotion service unavailable");
+        }
+        return banner;
+    }
+}</code></pre>
+
+<h2>2. Phần 1 - Phân Tích Chuyên Sâu Lỗi Kiến Trúc</h2>
+
+<h3>2.1. Cơ chế hoạt động của RestTemplate & Nguyên nhân gây cạn kiệt Thread</h3>
+<ul>
+    <li>
+        <strong>Mô hình Chặn Đồng bộ (Synchronous Blocking I/O):</strong>
+        <code>RestTemplate</code> hoạt động trên mô hình Servlet truyền thống. Khi phương thức <code>getForObject()</code> được gọi, luồng (thread) đang xử lý sẽ phát tín hiệu gửi socket qua mạng và ngay lập tức bị đưa vào trạng thái <strong><code>WAITING / BLOCKED</code></strong>.
+    </li>
+    <li>
+        Luồng này bị khóa cứng tại chỗ, không thể thực thi thêm bất kỳ tác vụ nào khác cho đến khi nhận được toàn bộ gói tin phản hồi từ <code>promotion-service</code>.
+    </li>
+    <li>
+        Trong mô hình Tomcat Servlet truyền thống (Thread-per-Request), mỗi request chiếm 1 worker thread. Để phục vụ 10.000 concurrent users, hệ thống cần hàng ngàn thread, dẫn đến chi phí chuyển ngữ cảnh (Context Switching) cực lớn và cạn kiệt bộ nhớ RAM (Stack Memory: mỗi thread ~1MB RAM).
+    </li>
+</ul>
+
+<h3>2.2. Tại sao WebFlux không thể xử lý Non-blocking khi có RestTemplate?</h3>
+<div class="alert-box alert-danger">
+    <strong>Nguyên nhân cốt tử: Vi phạm quy tắc bất biến "NEVER BLOCK THE EVENT LOOP" của Netty!</strong>
+</div>
+<ul>
+    <li>
+        <strong>Mô hình Reactor Netty EventLoop:</strong>
+        Spring WebFlux chạy trên máy chủ Netty theo mô hình Event-Driven Non-blocking. Netty không sử dụng hàng trăm thread như Tomcat mà chỉ duy trì một số lượng thread rất nhỏ:
+        <br/><center><strong>Số Netty EventLoop Threads = 2 &times; Số CPU Cores</strong></center>
+        <em>(Ví dụ: Máy chủ có 4 CPU Cores thì Netty chỉ cấp đúng <strong>8 Worker Threads</strong>).</em>
+    </li>
+    <li>
+        Các EventLoop thread này dùng cơ chế Non-blocking Selector để phục vụ hàng chục ngàn kết nối đồng thời. Khi request phát sinh I/O mạng, thread Netty không chờ mà ngay lập tức quay vòng phục vụ các request khác.
+    </li>
+    <li>
+        <strong>Hiệu ứng "Đầu độc EventLoop" (EventLoop Poisoning):</strong>
+        Khi gọi <code>restTemplate.getForObject(...)</code>, lệnh này chạy trực tiếp trên 1 trong 8 EventLoop thread của Netty, khiến thread đó bị <strong>khóa cứng (Blocked)</strong>.
+    </li>
+    <li>
+        <strong>Hậu quả khi chịu tải 10.000 users:</strong>
+        Chỉ cần **8 request đầu tiên** gọi RestTemplate và `promotion-service` bị chậm khoảng 1-2 giây, **toàn bộ 8 Netty EventLoop Threads đều bị khóa 100%**. Netty không còn bất kỳ thread nào để tiếp nhận hay điều phối sự kiện I/O cho 9.992 request còn lại. Toàn bộ ứng dụng StoreX bị **"đóng băng" hoàn toàn**, các kết nối bị từ chối hoặc timeout, dẫn đến bão lỗi **HTTP 500 / 504** và sập hệ thống.
+    </li>
+</ul>
+
+<div class="page-break"></div>
+
+<h3>2.3. Bảng đối chiếu kiến trúc giữa RestTemplate và WebClient</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Tiêu chí so sánh</th>
+            <th><code>RestTemplate</code> (Mô hình lỗi)</th>
+            <th><code>WebClient</code> (Chuẩn WebFlux Reactive)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Cơ chế I/O</strong></td>
+            <td>Synchronous Blocking I/O</td>
+            <td>Asynchronous Non-blocking I/O</td>
+        </tr>
+        <tr>
+            <td><strong>Mô hình quản lý Thread</strong></td>
+            <td>Khóa cứng thread chờ socket (Thread-per-Request)</td>
+            <td>Sử dụng EventLoop xoay vòng (Netty), không bao giờ block</td>
+        </tr>
+        <tr>
+            <td><strong>Số lượng Thread cần cho 10.000 users</strong></td>
+            <td>Cần hàng ngàn thread (Gây sập server, OOM)</td>
+            <td>Chỉ cần 4 - 8 EventLoop threads vẫn xử lý mượt mà</td>
+        </tr>
+        <tr>
+            <td><strong>Kiểu dữ liệu phản hồi</strong></td>
+            <td>Đối tượng đồng bộ tĩnh: <code>Banner</code></td>
+            <td>Luồng dữ liệu phản ứng bất đồng bộ: <code>Mono&lt;Banner&gt;</code></td>
+        </tr>
+        <tr>
+            <td><strong>Kiểm soát Timeout</strong></td>
+            <td>Khó kiểm soát, dễ treo vĩnh viễn</td>
+            <td>Cấu hình tường minh qua toán tử <code>.timeout(Duration.ofSeconds(2))</code></td>
+        </tr>
+        <tr>
+            <td><strong>Cơ chế Phục hồi (Fallback)</strong></td>
+            <td>Quăng <code>RuntimeException</code> làm crash luồng</td>
+            <td>Bắt lỗi mượt mà qua <code>.onErrorResume(...)</code> trả về Banner mặc định</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>3. Phần 2 - Mã Nguồn Sửa Đổi Chuẩn Reactive</h2>
+
+<h3>3.1. Cấu hình WebClient với Timeout Socket và HTTP (`WebClientConfig.java`)</h3>
+<pre><code>@Configuration
+public class WebClientConfig {
+
+    @Bean
+    @LoadBalanced
+    public WebClient.Builder loadBalancedWebClientBuilder() {
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000) // connectTimeout = 2s
+                .responseTimeout(Duration.ofSeconds(2))             // responseTimeout = 2s
+                .doOnConnected(conn -> conn
+                        .addHandlerLast(new ReadTimeoutHandler(2, TimeUnit.SECONDS))
+                        .addHandlerLast(new WriteTimeoutHandler(2, TimeUnit.SECONDS)));
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient));
+    }
+
+    @Bean
+    public WebClient promotionWebClient(
+            WebClient.Builder webClientBuilder,
+            @Value("${services.promotion-service.url:http://promotion-service}") String baseUrl
+    ) {
+        return webClientBuilder.baseUrl(baseUrl).build();
+    }
+}</code></pre>
+
+<h3>3.2. Lớp Dịch Vụ Reactive Đã Sửa Đổi (`PromotionService.java`)</h3>
+<pre><code>@Service
+@Slf4j
+public class PromotionService {
+
+    private final WebClient webClient;
+    private static final Duration TIMEOUT_DURATION = Duration.ofSeconds(2);
+
+    @Autowired
+    public PromotionService(WebClient webClient) {
+        this.webClient = webClient;
+    }
+
+    public Mono&lt;Banner&gt; getActiveBanner() {
+        log.info("Gửi yêu cầu Non-blocking GET tới /api/banners/active qua WebClient");
+
+        return webClient.get()
+                .uri("/api/banners/active")
+                .retrieve()
+                .bodyToMono(Banner.class)
+                // Cấu hình Timeout 2s theo yêu cầu bài toán
+                .timeout(TIMEOUT_DURATION)
+                .doOnSuccess(banner -> {
+                    if (banner != null) {
+                        log.info("Nhận thành công banner: {}", banner.getTitle());
+                    }
+                })
+                .doOnError(error -> log.warn("Sự cố gọi promotion-service: {}. Kích hoạt Fallback.", error.getMessage()))
+                // Bắt timeout hoặc lỗi mạng &rarr; trả về banner mặc định
+                .onErrorResume(error -> Mono.just(Banner.defaultBanner()))
+                .defaultIfEmpty(Banner.defaultBanner());
+    }
+}</code></pre>
+
+<div class="page-break"></div>
+
+<h3>3.3. Đối Tượng Model Dự Phòng (`Banner.java`)</h3>
+<pre><code>@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Banner {
+    private Long id;
+    private String title;
+    private String content;
+    private String imageUrl;
+    private String targetUrl;
+    private String status;
+
+    public static Banner defaultBanner() {
+        return Banner.builder()
+                .id(0L)
+                .title("Thông Báo Khuyến Mãi")
+                .content("Khuyến mãi đang được cập nhật") // Đúng yêu cầu đề bài
+                .imageUrl("/images/banners/default-banner.png")
+                .targetUrl("/")
+                .status("UPDATING")
+                .build();
+    }
+}</code></pre>
+
+<h2>4. Kết Quả Kiểm Thử Đơn Vị (Unit Test) Với StepVerifier</h2>
+<p>
+    Kiểm thử hành vi Reactive bằng thư viện chuẩn <code>reactor-test</code> (<code>StepVerifier</code>):
+</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Kịch bản Kiểm thử</th>
+            <th>Mục tiêu & Dữ liệu đầu vào</th>
+            <th>Kết quả mong đợi</th>
+            <th>Trạng thái</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>testGetActiveBanner_Success</code></td>
+            <td>Mô phỏng <code>promotion-service</code> trả về Banner thật (Flash Sale 9.9).</td>
+            <td><code>StepVerifier</code> nhận đúng Banner với status ACTIVE, kết thúc luồng thành công.</td>
+            <td><span style="color: #1a7f37; font-weight: bold;">PASSED ✅</span></td>
+        </tr>
+        <tr>
+            <td><code>testGetActiveBanner_Timeout_ReturnsDefaultBanner</code></td>
+            <td>Mô phỏng máy chủ phản hồi trễ quá 2 giây (quăng <code>TimeoutException</code>).</td>
+            <td>Hệ thống không crash, trả về Banner mặc định với thông báo <em>"Khuyến mãi đang được cập nhật"</em>.</td>
+            <td><span style="color: #1a7f37; font-weight: bold;">PASSED ✅</span></td>
+        </tr>
+        <tr>
+            <td><code>testGetActiveBanner_ServiceError_ReturnsDefaultBanner</code></td>
+            <td>Mô phỏng lỗi HTTP 503 Service Unavailable từ <code>promotion-service</code>.</td>
+            <td>Bắt lỗi mạng an toàn và kích hoạt Fallback trả về Banner mặc định.</td>
+            <td><span style="color: #1a7f37; font-weight: bold;">PASSED ✅</span></td>
+        </tr>
+        <tr>
+            <td><code>testGetActiveBanner_EmptyBody_ReturnsDefaultBanner</code></td>
+            <td>Mô phỏng máy chủ trả về body rỗng (<code>Mono.empty()</code>).</td>
+            <td>Tự động điền Banner mặc định qua toán tử <code>defaultIfEmpty</code>.</td>
+            <td><span style="color: #1a7f37; font-weight: bold;">PASSED ✅</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="alert-box alert-success">
+    <strong>Xác nhận kết quả:</strong> 100% các bài test đều vượt qua (Build SUCCESS). Ứng dụng hoạt động hoàn toàn Non-blocking và miễn nhiễm trước tình trạng cạn kiệt luồng Netty.
+</div>
+
+<h2>5. Kết Luận</h2>
+<p>
+    Việc thay thế <code>RestTemplate</code> bằng <code>WebClient</code> và trả về <code>Mono&lt;Banner&gt;</code> đã giải quyết triệt để lỗi kiến trúc trong Spring WebFlux:
+</p>
+<ul>
+    <li>Bảo vệ nguyên vẹn các Netty EventLoop Worker Threads, giải phóng luồng ngay lập tức để phục vụ tối đa 10.000 concurrent users.</li>
+    <li>Thiết lập trần thời gian phản hồi (Timeout 2s) và cơ chế suy thoái mượt mà (Graceful Degradation), bảo đảm trải nghiệm người dùng không bao giờ bị gián đoạn.</li>
+</ul>
+
+<div class="footer">
+    Báo Cáo Kỹ Thuật - Hệ Thống E-Commerce StoreX | Rikkei Education &copy; 2026
+</div>
+
+</body>
+</html>
